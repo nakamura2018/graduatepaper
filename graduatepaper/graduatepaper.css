@@ -1,0 +1,52 @@
+#header{
+    background: #afeeee;
+    width: 1032px;
+}
+
+#graphics{
+    position: absolute;
+    top: 308px;
+    left: 80px;
+    width: 960px ;
+    height: 500px;
+}
+
+#solve_Canvas{
+    background:#F0F8FF;
+    position: absolute;
+    top:70px;
+    left:3px;
+}
+#operation{
+    position: absolute;
+    top: 308px;
+    width: 80px;
+    height: 180px;
+}
+#start{
+    position: absolute;
+    top: 450px;
+    left: 14px;
+
+}
+#start2{
+    position: absolute;
+    top: 480px;
+    left: 14px;
+}
+#reset{
+    position: absolute;
+    top: 510px;
+    left: 14px;
+
+}
+#select{
+    position: absolute;
+    top: -18px;
+    left: 5px;
+}
+#pot{
+    position: absolute;
+    top: 75px;
+    left: 12px;
+}

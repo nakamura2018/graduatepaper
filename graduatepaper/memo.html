@@ -1,0 +1,32 @@
+
+//2-opt
+function twoopt() {
+for (let opt of this.long) { //経路の配列の取り出し
+for (l = 0; l < 4; l++) {
+opt[l](4) + opt[l + 2](4) > Math.sqrt(Math.pow(opt[0](0) - opt[i + 2](0), 2) + Math.pow(Coordinate[0](1) - opt[l + 2](1), 2))
+var context = canvas.getContext('2d');
+context.strokeStyle = "rgb(F0,F8,FF)";
+context.beginPath();
+context.moveTo(opt[l](0), opt[l](1));
+context.lineTo(opt[l + 1](0), opt[l + 1](1));
+context.stroke(); //あらかじめあった線をキャンバスの色にする
+var context = canvas.getContext('2d');
+context.strokeStyle = "rgb(F0,F8,FF)";
+context.beginPath();
+context.moveTo(opt[l + 2](0), opt[l + 2](1));
+context.lineTo(opt[l + 3](0), opt[l + 3](1));
+context.stroke();　//あらかじめあった線をキャンバスの色にする
+var context = canvas.getContext('2d');
+context.beginPath();
+context.moveTo(opt[l](0), opt[l](1));
+context.lineTo(opt[l + 2](0), opt[l + 2](1));
+context.stroke(); //新しい線を描画
+var context = canvas.getContext('2d');
+context.beginPath();
+context.moveTo(opt[l + 1](0), opt[l + 1](1));
+context.lineTo(opt[l + 3](0), opt[l + 3](1));
+context.stroke();　//新しい線を描画
+}
+}
+}
+}
