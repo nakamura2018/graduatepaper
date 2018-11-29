@@ -4,6 +4,7 @@ class Point {
         this.y = y;　　　　//y座標
         this.next = null;   // 次の点
         this.temp = null;   // 暫定的な次の点
+        this.number = 0;
     }
 
     /**
@@ -44,27 +45,67 @@ class Point {
         var pi = start;
         let distance = 0;
         do {
-            if (this.temp != null) {
+            if (pi.temp != null) {
                 distance += Math.sqrt(Math.pow(this.x - this.temp.x, 2) + Math.pow(this.y - this.temp.y, 2))
                 pi = pi.temp;
             } else {
                 distance += Math.sqrt(Math.pow(this.x - this.next.x, 2) + Math.pow(this.y - this.next.y, 2))
                 pi = pi.next;
             }
+            console.log( pi.number );
         } while(pi != start);
 
         return distance;
     }
 
-    chain( p ) {
+    chain( p, count ) {
         this.next = p;
+        this.number = count;
     }
 
     change( p ) {
         this.temp = p.next;
         p.temp = this.next;
+        this.next.temp = p.next.next;
+        p.next.temp = this.next.next;
     }
 
+    clear_temp() {
+        let start = this;
+        var pi = start;
+        do {
+            pi.temp = null;
+            pi = pi.next;
+        } while(pi != start);
+    }
+    debug() {
+        let start = this;
+        var pi = start;
+        let list = [];
+        list.push( pi.number );
+        do {
+            pi = pi.next;
+            list.push( pi.number );
+        } while(pi != start);
+
+        return list;
+    }
+
+    debug_temp() {
+        let start = this;
+        var pi = start;
+        let list = [];
+        list.push( pi.temp );
+        do {
+            // if( pi.temp != null )
+            //     pi = pi.temp;
+            // else
+                pi = pi.next;
+            list.push( pi.temp );
+        } while(pi != start);
+
+        return list;
+    }
 }
 
 
@@ -101,26 +142,42 @@ class Graphics {
             var pi = this.start;
             var count=0;
             while (this.pa.length > 0) {
-                console.log(count++);
                 console.log(this.pa.length);
+
                 //console.log(pi);
                 let near = this.shortest(pi);　//nearにpiからの最短を保存
                 let next = this.pa.indexOf(near); //nextにnearを複製
                 let p2 = this.pa.splice(next, 1)[0];
-                pi.chain( p2 );
-                console.log(pi);
+                pi.chain( p2, count );
+                console.log(count++);
+                //console.log(pi);
                 //this.line(xfst, yfst, xshortest, yshortest);//始点から最短に線を引く
                 pi = p2;
             }
-            pi.chain( this.start );
+            pi.chain( this.start, count );
+            console.log( this.start.debug() );
             this.draw_next();
         });
 
         document.querySelector("#start2").addEventListener('click', () => {
+
             var distance1 = this.start.distance_chain();
             var distance2 = this.start.distance_temp();
             console.log( distance1 );
             console.log( distance2 );
+
+            // var ch = this.challenge();
+            // while(true) {
+            //     let value = ch.next();
+            //     let distance1 = value[0];
+            //     let distance2 = value[1];
+            //     if( !value ) break;
+            //     console.log( value );
+            // }
+
+            for( let value of this.challenge() )    console.log( value );
+
+            //for( let value of this.challenge )  console.log( value );
             // var pi = this.start;
             // do {
             //     console.log( "x=" + pi.x + ", y=" + pi.y );
@@ -188,7 +245,55 @@ class Graphics {
     }
 
     * challenge() {
-
+        var pi = this.start;
+        var l = 0;
+        do {
+            var pi2 = pi.next.next;
+            do {
+                if( pi == pi2 ) break;
+                console.log( "->" + pi.number + "と" + pi2.number + "を変更");
+                pi.change( pi2 );
+                console.log("change後");
+                console.log( this.start.debug() );
+                console.log( this.start.debug_temp() );
+                pi2 = pi2.next;
+                let distance1 = this.start.distance_chain();
+                let distance2 = this.start.distance_temp();
+                console.log( "元の距離=" + distance1 );
+                console.log( "変更後の距離=" + distance2 );
+                yield( [ distance1, distance2 ] );
+                if( distance2 < distance1 ) {
+                    this.start.clear_temp();
+                    // pi.temp.next = pi.temp.temp;
+                    // pi.temp.temp = null;
+                    // pi2.temp.next = pi2.temp.temp;
+                    // pi2.temp.temp = null;
+                    // pi.next = pi.temp;
+                    // pi.temp = null;
+                    // pi2.next = pi2.temp;
+                    // pi2.temp = null;
+                    console.log("changed");
+                } else {
+                    this.start.clear_temp();
+                    // pi.temp.temp = null;
+                    // pi2.temp.temp = null;
+                    // pi.next.temp = null;
+                    // pi2.next.temp = null;
+                    // pi.temp = null;
+                    // pi2.temp = null;
+                }
+                console.log("ループ内");
+                console.log( this.start.debug() );
+                console.log( this.start.debug_temp() );
+                pi2 = pi2.next;
+            }while( pi2.next.next != this.start );
+            console.log("loop外");
+            pi = pi.next;
+            console.log("pi,pi2");
+            console.log( this.start.debug() );
+            console.log( this.start.debug_temp() );
+        } while( pi.next.next != this.start );
+        return null;
     }
     shortest(p) {//pからの最小を求める
         var short;
