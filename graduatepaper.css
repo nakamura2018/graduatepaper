@@ -11,8 +11,13 @@
     height: 500px;
 }
 
-#solve_Canvas{
+#original{
     background:#F0F8FF;
+    position: absolute;
+    top:70px;
+    left:3px;
+}
+#twoopt{
     position: absolute;
     top:70px;
     left:3px;
