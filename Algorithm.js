@@ -4,7 +4,7 @@ class Point {
         this.y = y;　　　　//y座標
         this.next = null;   // 次の点
         this.temp = null;   // 暫定的な次の点
-        this.number = 0;
+        this.number = 0; //描かれた円の数
     }
 
     /**
@@ -46,11 +46,9 @@ class Point {
         let distance = 0;
         do {
             if (pi.temp != null) {
-                //console.log( "探索: " + pi.number + "->" + pi.temp.number );
                 distance += Math.sqrt(Math.pow(pi.x - pi.temp.x, 2) + Math.pow(pi.y - pi.temp.y, 2))
                 pi = pi.temp;
             } else {
-                //console.log( "探索: " + pi.number + "->" + pi.next.number );
                 distance += Math.sqrt(Math.pow(pi.x - pi.next.x, 2) + Math.pow(pi.y - pi.next.y, 2))
                 pi = pi.next;
             }
@@ -71,6 +69,18 @@ class Point {
         this.next.temp = p.next.next;
         p.next.temp = this.next.next;
         return [ this.x, this.y, this.next.x, this.next.y, this.next.next.x, this.next.next.y, p.x, p.y, p.next.x, p.next.y, p.next.next.x, p.next.next.y ];
+    }
+
+    change_to_temp() {
+        let start = this;
+        var pi = start;
+        do {
+            if (pi.temp != null) {
+                pi.next = pi.temp;
+                pi.temp = null;
+            }
+            pi = pi.next;
+        } while(pi != start);
     }
 
     clear_temp() {
@@ -100,9 +110,6 @@ class Point {
         let list = [];
         list.push( pi.temp );
         do {
-            // if( pi.temp != null )
-            //     pi = pi.temp;
-            // else
                 pi = pi.next;
             list.push( pi.temp );
         } while(pi != start);
@@ -119,12 +126,17 @@ class Graphics {
         this.max = number;
         this.route = [];
         this.solve_canvas = document.querySelector('#original');
-        //console.log( this.solve_canvas );
         this.ctx = this.solve_canvas.getContext('2d');
         this.twoopt = document.querySelector('#twoopt');
         this.tctx = this.twoopt.getContext('2d');
+        this.nn = document.querySelector('#nn');
+        this.nctx = this.nn.getContext('2d');
+        this.optt = document.querySelector('#optt');
+        this.ttctx = this.optt.getContext('2d');
         this.pa = [];
         this.number = 0; //円の数
+        var tcount = 0; //2-optの表示で使う
+
         this.twoopt.addEventListener('click', (ev) => {
             if (this.max > this.number) {　//指定した円の数より現在の円の数が下回る場合
                 let p = new Point(ev.offsetX, ev.offsetY);
@@ -137,9 +149,38 @@ class Graphics {
 
         document.querySelector("#clear").addEventListener("click", () => {
             this.ctx.clearRect(0, 0, 950, 420);
+            this.tctx.clearRect(0, 0, 950, 420);
+            this.nctx.clearRect(0, 0, 950, 420);
+            this.ttctx.clearRect(0, 0, 950, 420);
             this.pa = [];
             this.number = 0;
         });　　　　　　　　//リセットボタンを押した時に描画領域、配列、個数をリセット
+
+//canvas切り替え
+        document.querySelector('#hyojio').addEventListener('click', ()=> {
+            this.solve_canvas.style.display ="block";
+            this.nn.style.display ="none";
+            this.twoopt.style.display ="none";
+            this.optt.style.display ="none";
+        });
+        document.querySelector('#hyojin').addEventListener('click', ()=> {
+            this.solve_canvas.style.display ="none";
+            this.nn.style.display ="block";
+            this.twoopt.style.display ="none";
+            this.optt.style.display ="none";
+        });
+        document.querySelector('#hyojit').addEventListener('click', ()=> {
+            this.solve_canvas.style.display ="none";
+            this.nn.style.display ="none";
+            this.twoopt.style.display ="block";
+            this.optt.style.display ="none";
+        });
+        document.querySelector('#hyojiopt').addEventListener('click', ()=> {
+            this.solve_canvas.style.display ="none";
+            this.nn.style.display ="none";
+            this.twoopt.style.display ="none";
+            this.optt.style.display ="block";
+        });
 
         // 最近傍法によるルート設定
         document.querySelector("#start").addEventListener('click', () => {
@@ -147,150 +188,325 @@ class Graphics {
             var pi = this.start;
             var count=0;
             while (this.pa.length > 0) {
-                console.log(this.pa.length);
-
-                //console.log(pi);
+                //console.log(this.pa.length);
                 let near = this.shortest(pi);　//nearにpiからの最短を保存
                 let next = this.pa.indexOf(near); //nextにnearを複製
                 let p2 = this.pa.splice(next, 1)[0];
                 pi.chain( p2, count );
-                console.log(count++);
-                //console.log(pi);
-                //this.line(xfst, yfst, xshortest, yshortest);//始点から最短に線を引く
+                //console.log(count++);
                 pi = p2;
             }
             pi.chain( this.start, count );
-            console.log( this.start.debug() );
+            //console.log( this.start.debug() );
             this.draw_next();
-        });
 
-        document.querySelector("#start2").addEventListener('click', () => {
-
-            var distance1 = this.start.distance_chain();
-            var distance2 = this.start.distance_temp();
-            console.log( distance1 );
-            console.log( distance2 );
-
-            // var ch = this.challenge();
-            // while(true) {
-            //     let value = ch.next();
-            //     let distance1 = value[0];
-            //     let distance2 = value[1];
-            //     if( !value ) break;
-            //     console.log( value );
-            // }
-
-            for( let value of this.challenge() ){
-                if( value != null ) {
-                    this.tctx.clearRect(0, 0, 950, 420);
-                    //console.log( value );
-                    console.log("距離（元）=" + value[1]);
-                    console.log("距離（変更後)=" + value[2]);
-                    let coord = value[0];
-                    this.tctx.beginPath();
-                    this.tctx.strokeStyle = 'rgb(200,0,0)';
-                    this.tctx.moveTo(coord[0], coord[1]);
-                    this.tctx.lineTo(coord[2], coord[3]);
-                    this.tctx.lineTo(coord[4], coord[5]);
-
-                    this.tctx.stroke();
-                    this.tctx.beginPath();
-                    this.tctx.strokeStyle = 'rgb(0,200,0)';
-                    this.tctx.moveTo(coord[0], coord[1]);
-                    this.tctx.lineTo(coord[8], coord[9]);
-                    this.tctx.lineTo(coord[4], coord[5]);
-                    this.tctx.stroke();
-                }
+        var distance1 = this.start.distance_chain();
+        var distance2 = this.start.distance_temp();
+        for( let value of this.challenge() ) {
+            //2-optでルートを改善
+        }
+            let Point = this.start;
+            while (Point.next != this.start) {
+                this.tctx.beginPath();
+                this.tctx.strokeStyle = 'rgb(0,0,0)';
+                this.tctx.moveTo(Point.x, Point.y);
+                this.tctx.lineTo(Point.next.x, Point.next.y);
+                this.tctx.stroke();
+                Point = Point.next;
             }
-
-
-            //for( let value of this.challenge )  console.log( value );
-            // var pi = this.start;
-            // do {
-            //     console.log( "x=" + pi.x + ", y=" + pi.y );
-            //     pi = pi.next;
-            // } while(pi != this.start);
-
-            //this.draw_next();
-
-            // for( let i=0; i<this.max; i++ ) {
-            //     console.log( "---" );
-            //     console.log( pi );
-            //     console.log( pi.next );
-            //     if( pi.next != this.start ) console.log("続く");
-            //     else console.log("終わり");
-            //     pi = pi.next;
-            // }
+             if (Point.next = this.start) {
+                 this.tctx.beginPath();
+                 this.tctx.strokeStyle = 'rgb(0,0,0)';
+                 this.tctx.moveTo(Point.x, Point.y);
+                 this.tctx.lineTo(this.start.x, this.start.y);
+                 this.tctx.stroke();
+             }
+            //console.log(this.start.debug());
         });
-
+         document.querySelector("#next").addEventListener('click', () => {//2-optの処理を2-optの探索を押すと順に表示される
+             tcount=tcount+1;
+             let crote = this.start;
+             if(tcount == 1)
+             {
+                 this.ttctx.beginPath();
+                 this.ttctx.strokeStyle = 'rgb(0,255,0)';
+                 this.ttctx.moveTo(crote.x, crote.y);
+                 this.ttctx.lineTo(crote.next.x, crote.next.y);
+                 this.ttctx.stroke();
+                 this.ttctx.beginPath();
+                 this.ttctx.strokeStyle = 'rgb(0,255,0)';
+                 this.ttctx.moveTo(crote.next.next.x, crote.next.next.y);
+                 this.ttctx.lineTo(crote.next.next.next.x, crote.next.next.next.y);
+                 this.ttctx.stroke();//探索箇所を緑色で描画
+                 this.ttctx.beginPath();
+                 this.ttctx.strokeStyle = 'rgb(255,0,0)';
+                 this.ttctx.moveTo(crote.x, crote.y);
+                 this.ttctx.lineTo(crote.next.next.next.x, crote.next.next.next.y);
+                 this.ttctx.stroke();
+                 this.ttctx.beginPath();
+                 this.ttctx.strokeStyle = 'rgb(255,0,0)';
+                 this.ttctx.moveTo(crote.next.next.x, crote.next.next.y);
+                 this.ttctx.lineTo(crote.next.x, crote.next.y);
+                 this.ttctx.stroke();
+             }
+             if(tcount == 2){
+                 this.ttctx.beginPath();
+                 this.ttctx.strokeStyle = 'rgb(0,0,0)';
+                 this.ttctx.moveTo(crote.x, crote.y);
+                 this.ttctx.lineTo(crote.next.x, crote.next.y);
+                 this.ttctx.stroke();
+                 this.ttctx.beginPath();
+                 this.ttctx.strokeStyle = 'rgb(0,0,0)';
+                 this.ttctx.moveTo(crote.next.next.x, crote.next.next.y);
+                 this.ttctx.lineTo(crote.next.next.next.x, crote.next.next.next.y);
+                 this.ttctx.stroke();//探索箇所を緑色で描画
+                 this.ttctx.beginPath();
+                 this.ttctx.strokeStyle = 'rgb(0,0,0)';
+                 this.ttctx.moveTo(crote.x, crote.y);
+                 this.ttctx.lineTo(crote.next.x, crote.next.y);
+                 this.ttctx.stroke();
+                 this.ttctx.beginPath();
+                 this.ttctx.strokeStyle = 'rgb(0,0,0)';
+                 this.ttctx.moveTo(crote.next.next.x, crote.next.next.y);
+                 this.ttctx.lineTo(crote.next.next.next.x, crote.next.next.next.y);
+                 this.ttctx.stroke();//探索箇所を緑色で描画
+                 this.ttctx.beginPath();
+                 this.ttctx.strokeStyle = 'rgb(240,248,255)';
+                 this.ttctx.moveTo(crote.x, crote.y);
+                 this.ttctx.lineTo(crote.next.next.next.x, crote.next.next.next.y);
+                 this.ttctx.stroke();
+                 this.ttctx.beginPath();
+                 this.ttctx.strokeStyle = 'rgb(240,248,255)';
+                 this.ttctx.moveTo(crote.next.next.x, crote.next.next.y);
+                 this.ttctx.lineTo(crote.next.x, crote.next.y);
+                 this.ttctx.stroke();
+             }
+             if(tcount == 3){
+                 this.ttctx.beginPath();
+                 this.ttctx.strokeStyle = 'rgb(0,255,0)';
+                 this.ttctx.moveTo(crote.x, crote.y);
+                 this.ttctx.lineTo(crote.next.x, crote.next.y);
+                 this.ttctx.stroke();
+                 this.ttctx.beginPath();
+                 this.ttctx.strokeStyle = 'rgb(0,255,0)';
+                 this.ttctx.moveTo(crote.next.next.next.x, crote.next.next.next.y);
+                 this.ttctx.lineTo(crote.next.next.next.next.x, crote.next.next.next.next.y);
+                 this.ttctx.stroke();//探索箇所を緑色で描画
+                 this.ttctx.beginPath();
+                 this.ttctx.strokeStyle = 'rgb(255,0,0)';
+                 this.ttctx.moveTo(crote.x, crote.y);
+                 this.ttctx.lineTo(crote.next.next.next.next.x, crote.next.next.next.next.y);
+                 this.ttctx.stroke();
+                 this.ttctx.beginPath();
+                 this.ttctx.strokeStyle = 'rgb(255,0,0)';
+                 this.ttctx.moveTo(crote.next.next.x, crote.next.next.y);
+                 this.ttctx.lineTo(crote.next.x, crote.next.y);
+                 this.ttctx.stroke();
+             }
+             if(tcount == 4){
+                 this.ttctx.beginPath();
+                 this.ttctx.strokeStyle = 'rgb(0,0,0)';
+                 this.ttctx.moveTo(crote.x, crote.y);
+                 this.ttctx.lineTo(crote.next.x, crote.next.y);
+                 this.ttctx.stroke();
+                 this.ttctx.beginPath();
+                 this.ttctx.strokeStyle = 'rgb(0,0,0)';
+                 this.ttctx.moveTo(crote.next.next.next.x, crote.next.next.next.y);
+                 this.ttctx.lineTo(crote.next.next.next.next.x, crote.next.next.next.next.y);
+                 this.ttctx.stroke();
+                 this.ttctx.beginPath();
+                 this.ttctx.strokeStyle = 'rgb(0,0,0)';
+                 this.ttctx.moveTo(crote.x, crote.y);
+                 this.ttctx.lineTo(crote.next.x, crote.next.y);
+                 this.ttctx.stroke();
+                 this.ttctx.beginPath();
+                 this.ttctx.strokeStyle = 'rgb(0,0,0)';
+                 this.ttctx.moveTo(crote.next.next.next.x, crote.next.next.next.y);
+                 this.ttctx.lineTo(crote.next.next.next.next.x, crote.next.next.next.next.y);
+                 this.ttctx.stroke();//探索箇所を緑色で描画
+                 this.ttctx.beginPath();
+                 this.ttctx.strokeStyle = 'rgb(240,248,255)';
+                 this.ttctx.moveTo(crote.x, crote.y);
+                 this.ttctx.lineTo(crote.next.next.next.next.x, crote.next.next.next.next.y);
+                 this.ttctx.stroke();
+                 this.ttctx.beginPath();
+                 this.ttctx.strokeStyle = 'rgb(240,248,255)';
+                 this.ttctx.moveTo(crote.next.next.x, crote.next.next.y);
+                 this.ttctx.lineTo(crote.next.x, crote.next.y);
+                 this.ttctx.stroke();
+             }
+             if(tcount == 5){
+                 this.ttctx.beginPath();
+                 this.ttctx.strokeStyle = 'rgb(0,255,0)';
+                 this.ttctx.moveTo(crote.next.x, crote.next.y);
+                 this.ttctx.lineTo(crote.next.next.x, crote.next.next.y);
+                 this.ttctx.stroke();
+                 this.ttctx.beginPath();
+                 this.ttctx.strokeStyle = 'rgb(0,255,0)';
+                 this.ttctx.moveTo(crote.next.next.next.x, crote.next.next.next.y);
+                 this.ttctx.lineTo(crote.next.next.next.next.x, crote.next.next.next.next.y);
+                 this.ttctx.stroke();//探索箇所を緑色で描画
+                 this.ttctx.beginPath();
+                 this.ttctx.strokeStyle = 'rgb(255,0,0)';
+                 this.ttctx.moveTo(crote.next.x, crote.next.y);
+                 this.ttctx.lineTo(crote.next.next.next.next.x, crote.next.next.next.next.y);
+                 this.ttctx.stroke();
+                 this.ttctx.beginPath();
+                 this.ttctx.strokeStyle = 'rgb(255,0,0)';
+                 this.ttctx.moveTo(crote.next.next.next.x, crote.next.next.next.y);
+                 this.ttctx.lineTo(crote.next.x, crote.next.y);
+                 this.ttctx.stroke();
+             }
+             if(tcount == 6) {
+                 this.ttctx.beginPath();
+                 this.ttctx.strokeStyle = 'rgb(0,0,0)';
+                 this.ttctx.moveTo(crote.next.x, crote.next.y);
+                 this.ttctx.lineTo(crote.next.next.x, crote.next.next.y);
+                 this.ttctx.stroke();
+                 this.ttctx.beginPath();
+                 this.ttctx.strokeStyle = 'rgb(0,0,0)';
+                 this.ttctx.moveTo(crote.next.next.next.x, crote.next.next.next.y);
+                 this.ttctx.lineTo(crote.next.next.next.next.x, crote.next.next.next.next.y);
+                 this.ttctx.stroke();//探索箇所を緑色で描画
+                 this.ttctx.beginPath();
+                 this.ttctx.beginPath();
+                 this.ttctx.strokeStyle = 'rgb(0,0,0)';
+                 this.ttctx.moveTo(crote.next.x, crote.next.y);
+                 this.ttctx.lineTo(crote.next.next.x, crote.next.next.y);
+                 this.ttctx.stroke();
+                 this.ttctx.strokeStyle = 'rgb(0,0,0)';
+                 this.ttctx.moveTo(crote.next.next.next.x, crote.next.next.next.y);
+                 this.ttctx.lineTo(crote.next.next.next.next.x, crote.next.next.next.next.y);
+                 this.ttctx.stroke();//探索箇所を緑色で描画
+                 this.ttctx.beginPath();
+                 this.ttctx.beginPath();
+                 this.ttctx.strokeStyle = 'rgb(240,248,255)';
+                 this.ttctx.moveTo(crote.next.x, crote.next.y);
+                 this.ttctx.lineTo(crote.next.next.next.next.x, crote.next.next.next.next.y);
+                 this.ttctx.stroke();
+                 this.ttctx.beginPath();
+                 this.ttctx.strokeStyle = 'rgb(240,248,255)';
+                 this.ttctx.moveTo(crote.next.next.next.x, crote.next.next.next.y);
+                 this.ttctx.lineTo(crote.next.x, crote.next.y);
+                 this.ttctx.stroke();
+             }
+                 if(tcount == 7) {
+                 this.ttctx.beginPath();
+                 this.ttctx.strokeStyle = 'rgb(0,255,0)';
+                 this.ttctx.moveTo(crote.next.next.x, crote.next.next.y);
+                 this.ttctx.lineTo(crote.next.next.next.x, crote.next.next.next.y);
+                 this.ttctx.stroke();
+                 this.ttctx.beginPath();
+                 this.ttctx.strokeStyle = 'rgb(0,255,0)';
+                 this.ttctx.moveTo(crote.next.next.next.next.x, crote.next.next.next.next.y);
+                 this.ttctx.lineTo(crote.x, crote.y);
+                 this.ttctx.stroke();//探索箇所を緑色で描画
+                 this.ttctx.beginPath();
+                 this.ttctx.strokeStyle = 'rgb(255,0,0)';
+                 this.ttctx.moveTo(crote.next.next.x, crote.next.next.y);
+                 this.ttctx.lineTo(crote.x, crote.y);
+                 this.ttctx.stroke();
+                 this.ttctx.beginPath();
+                 this.ttctx.strokeStyle = 'rgb(255,0,0)';
+                 this.ttctx.moveTo(crote.next.next.next.next.x, crote.next.next.next.next.y);
+                 this.ttctx.lineTo(crote.next.next.next.x, crote.next.next.next.y);
+                 this.ttctx.stroke();
+             }
+                 if(tcount == 8){
+                     this.ttctx.beginPath();
+                     this.ttctx.strokeStyle = 'rgb(0,0,0)';
+                     this.ttctx.moveTo(crote.next.next.x, crote.next.next.y);
+                     this.ttctx.lineTo(crote.next.next.next.x, crote.next.next.next.y);
+                     this.ttctx.stroke();
+                     this.ttctx.beginPath();
+                     this.ttctx.strokeStyle = 'rgb(0,0,0)';
+                     this.ttctx.moveTo(crote.next.next.next.next.x, crote.next.next.next.next.y);
+                     this.ttctx.lineTo(crote.x, crote.y);
+                     this.ttctx.stroke();//探索箇所を緑色で描画
+                     this.ttctx.beginPath();
+                     this.ttctx.strokeStyle = 'rgb(0,0,0)';
+                     this.ttctx.moveTo(crote.next.next.x, crote.next.next.y);
+                     this.ttctx.lineTo(crote.next.next.next.x, crote.next.next.next.y);
+                     this.ttctx.stroke();
+                     this.ttctx.beginPath();
+                     this.ttctx.strokeStyle = 'rgb(0,0,0)';
+                     this.ttctx.moveTo(crote.next.next.next.next.x, crote.next.next.next.next.y);
+                     this.ttctx.lineTo(crote.x, crote.y);
+                     this.ttctx.stroke();//探索箇所を緑色で描画
+                     this.ttctx.beginPath();
+                     this.ttctx.strokeStyle = 'rgb(240,248,255)';
+                     this.ttctx.moveTo(crote.next.next.x, crote.next.next.y);
+                     this.ttctx.lineTo(crote.x, crote.y);
+                     this.ttctx.stroke();
+                     this.ttctx.beginPath();
+                     this.ttctx.strokeStyle = 'rgb(0,0,0)';
+                     this.ttctx.moveTo(crote.next.next.next.next.x, crote.next.next.next.next.y);
+                     this.ttctx.lineTo(crote.next.next.next.x, crote.next.next.next.y);
+                     this.ttctx.stroke();
+                 }
+             else{}
+                 });
     }
 
-    draw_point(cx, cy, r) {//描くメソッド
+    draw_point(cx, cy, r) {//全てのキャンバスに円を描くメソッド
         this.ctx.beginPath();
         this.ctx.arc(cx, cy, r, 0, 2 * Math.PI, false);
         this.ctx.strokeStyle = 'rgb(0,0,0)';
         this.ctx.fill();
         this.ctx.stroke();
+        this.nctx.beginPath();
+        this.nctx.arc(cx, cy, r, 0, 2 * Math.PI, false);
+        this.nctx.strokeStyle = 'rgb(0,0,0)';
+        this.nctx.fill();
+        this.nctx.stroke();
+        this.tctx.beginPath();
+        this.tctx.arc(cx, cy, r, 0, 2 * Math.PI, false);
+        this.tctx.strokeStyle = 'rgb(0,0,0)';
+        this.tctx.fill();
+        this.tctx.stroke();
+        this.ttctx.beginPath();
+        this.ttctx.arc(cx, cy, r, 0, 2 * Math.PI, false);
+        this.ttctx.strokeStyle = 'rgb(0,0,0)';
+        this.ttctx.fill();
+        this.ttctx.stroke();
     }
 
-    draw_next() {//描くメソッド
-        this.ctx.beginPath();
+    draw_next() {//次の点までの線を描くメソッド
+        this.nctx.beginPath();
         var pi = this.start;
-        this.ctx.moveTo( pi.x, pi.y );
+        this.nctx.moveTo( pi.x, pi.y );
+        this.ttctx.moveTo(pi.x,pi.y);
         do {
-            this.ctx.lineTo( pi.x, pi. y );
+            this.nctx.lineTo( pi.x, pi. y );
+            this.ttctx.lineTo( pi.x, pi.y );
             pi = pi.next;
         }while( pi != this.start )
-        this.ctx.lineTo( this.start.x, this.start.y );
-        this.ctx.stroke();
+        this.nctx.lineTo( this.start.x, this.start.y );
+        this.nctx.stroke();
+        this.ttctx.lineTo( this.start.x, this.start.y );
+        this.ttctx.stroke();
+        //console.log( this.start.debug() );
     }
 
-    line(ax, ay, bx, by) {//線を引く
-        this.ctx.beginPath();
-        this.ctx.moveTo(ax, ay);
-        this.ctx.lineTo(bx, by);
-        this.ctx.stroke();
-
-    }
-
-    cline(ax, ay, bx, by) {//変更前の線の色を変える
-        this.ctx.beginPath();
-        this.ctx.moveTo(ax, ay);
-        this.ctx.lineTo(bx, by);
-        this.ctx.strokeStyle = 'rgb(188,200,219)';
-        this.ctx.stroke();
-
-    }
-
-    tline(ax, ay, bx, by) {//変更前の線の色を変える
-        this.ctx.beginPath();
-        this.ctx.moveTo(ax, ay);
-        this.ctx.lineTo(bx, by);
-        this.ctx.strokeStyle = 'rgb(229,0,118)';
-        this.ctx.stroke();
-
-    }
-
-    * challenge() {
+    * challenge() {//2-optの処理
         var pi = this.start;
         var l = 0;
         do {
             var pi2 = pi.next.next;
-            //console.log("内部ループ");
             do {
                 if( pi == pi2 ) break;
-                console.log( "->" + pi.number + "と" + pi2.number + "を変更");
+                //console.log( "->" + pi.number + "と" + pi2.number + "を変更");
                 let coord = pi.change( pi2 );
                 //console.log("change後");
                 //console.log( this.start.debug() );
                 //console.log( this.start.debug_temp() );
-                //pi2 = pi2.next;
                 let distance1 = this.start.distance_chain();
                 let distance2 = this.start.distance_temp();
                 //console.log( "元の距離=" + distance1 );
                 //console.log( "変更後の距離=" + distance2 );
                 yield( [ coord, distance1, distance2 ] );
                 if( distance2 < distance1 ) {
+                    this.start.change_to_temp();
                     this.start.clear_temp();
                     // pi.temp.next = pi.temp.temp;
                     // pi.temp.temp = null;
@@ -300,7 +516,7 @@ class Graphics {
                     // pi.temp = null;
                     // pi2.next = pi2.temp;
                     // pi2.temp = null;
-                    console.log("changed");
+                    //console.log("changed");
                 } else {
                     this.start.clear_temp();
                     // pi.temp.temp = null;
@@ -310,31 +526,21 @@ class Graphics {
                     // pi.temp = null;
                     // pi2.temp = null;
                 }
-                //console.log("ループ内");
-                //console.log( this.start.debug() );
-                //console.log( this.start.debug_temp() );
                 pi2 = pi2.next;
             }while( (pi2.next != this.start)&&(pi2!=this.start) );
-            //console.log("loop外");
             pi = pi.next;
-            //console.log("pi,pi2");
-            //console.log( this.start.debug() );
-            //console.log( this.start.debug_temp() );
         } while( pi.next.next != this.start );
-        //return null;
     }
     shortest(p) {//pからの最小を求める
         var short;
         var d_min = 999999999;//現状の最小
         for (let pi of this.pa) {//piに配列paを複製
-            // if (pi != p) {
                 let d1 = p.distance(pi);//d1にp-pi間の距離を代入
                 if (d1 < d_min) {//新しいものが最小ならば
                     d_min = d1;//現状の最小を更新する
                     short = pi;//最小の終点を更新
-                    console.log(pi);
+                    //console.log(pi);
                 }
-            // }
         }
 
         return short;//最短のものを返す
@@ -368,7 +574,7 @@ class Graphics {
                 distance += Math.sqrt(Math.pow(this.x - this.next.x, 2) + Math.pow(this.y - this.next.y, 2))
                 pi = pi.next;
             }
-            console.log( "探索: " + pi.number + "->" + pi.next.number );
+            //console.log( "探索: " + pi.number + "->" + pi.next.number );
         } while(pi != this.start);
 
         return distance;
